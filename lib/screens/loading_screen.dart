@@ -1,10 +1,13 @@
+import 'package:clima/screens/location_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import 'package:clima/services/location.dart';
 import 'package:clima/services/networking.dart';
 
 import '../utilities/debugging.dart';
+import 'api_const.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -14,9 +17,6 @@ class LoadingScreen extends StatefulWidget {
 }
 
 class _LoadingScreenState extends State<LoadingScreen> {
-  late double latitude;
-  late double longitude;
-
   @override
   void initState() {
     super.initState();
@@ -26,25 +26,28 @@ class _LoadingScreenState extends State<LoadingScreen> {
   void getLocationData() async {
     // const appId = 'b6907d289e10d714a6e88b30761fae22'; //temp/sample
     // get('https://samples.openweathermap.org/data/2.5/weather?lat=43.91&lon=-78.807&appid=$appId');
-    const apiKey = '68443217e38e0a57bc1968ac0cc7c631';
 
     Location location = Location();
     await location.getCurrentLocation();
     kDMprint(location);
-    latitude = location.latitude;
-    longitude = location.longitude;
 
     final Uri url = Uri(
       scheme: 'https',
       host: 'api.openweathermap.org',
       path: 'data/2.5/weather',
-      query: 'lat=$latitude&lon=$longitude&appid=$apiKey',
+      query:
+          'lat=${location.latitude}&lon=${location.longitude}&appid=$apiKey&units=metric',
     );
     kDMprint(url);
     final Uri httpsUri = Uri.https(
       'api.openweathermap.org',
       'data/2.5/weather',
-      {'lat': '$latitude', 'lon': '$longitude', 'appid': apiKey},
+      {
+        'lat': '${location.latitude}',
+        'lon': '${location.longitude}',
+        'units': 'metric',
+        'appid': apiKey,
+      },
     );
     kDMprint(httpsUri);
     NetworkHelper networkHelper = NetworkHelper(httpsUri);
@@ -55,18 +58,28 @@ class _LoadingScreenState extends State<LoadingScreen> {
     // String locale = decodeData['name'];
     // print(
     //     'temperature: $temperature, weatherId: $weatherId, locale: $locale');
+
+    Navigator.push(context, MaterialPageRoute(builder: (context) {
+      return LocationScreen(
+        locationWeather: weatherData,
+      );
+    }));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            getLocationData();
-          },
-          child: const Text('Get Location'),
+        child: SpinKitDoubleBounce(
+          color: Colors.white,
+          size: 100.0,
         ),
+        // child: ElevatedButton(
+        //   onPressed: () {
+        //     getLocationData();
+        //   },
+        //   child: const Text('Get Location'),
+        // ),
       ),
     );
   }

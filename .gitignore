@@ -45,4 +45,5 @@ app.*.map.json
 
 # My Custom Items
 clima.zip
-scratch.dart
+scratch*.dart
+*/*/api_const.dart
