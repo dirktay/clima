@@ -3,6 +3,7 @@ import 'package:clima/utilities/constants.dart';
 
 import '../services/weather.dart';
 import '../utilities/debugging.dart';
+import 'city_screen.dart';
 
 class LocationScreen extends StatefulWidget {
   const LocationScreen({super.key, this.locationWeather});
@@ -15,9 +16,10 @@ class LocationScreen extends StatefulWidget {
 
 class _LocationScreenState extends State<LocationScreen> {
   late int temperature;
-  late int weatherId;
+  late String weatherIcon;
+  late String weatherMessage;
   late String locale;
-  WeatherModel weatherModel = WeatherModel();
+  WeatherModel weather = WeatherModel();
 
   @override
   void initState() {
@@ -28,11 +30,22 @@ class _LocationScreenState extends State<LocationScreen> {
   }
 
   void updateUI(dynamic weatherData) {
-    temperature = weatherData['main']['temp'].round();
-    weatherId = weatherData['weather'][0]['id'];
-    locale = weatherData['name'];
+    setState(() {
+      if (weatherData == null) {
+        temperature = 0;
+        weatherIcon = 'Error';
+        weatherMessage = 'Unable to get weather data';
+        locale = '';
+      } else {
+        temperature = weatherData['main']['temp'].round();
+        var weatherId = weatherData['weather'][0]['id'];
+        weatherIcon = weather.getWeatherIcon(weatherId);
+        weatherMessage = weather.getMessage(temperature);
+        locale = weatherData['name'];
+      }
+    });
     kDMprint(
-        'temperature: $temperature, weatherId: $weatherId, locale: $locale');
+        'temperature: $temperature, weatherIcon: $weatherIcon, locale: $locale');
   }
 
   @override
@@ -57,14 +70,31 @@ class _LocationScreenState extends State<LocationScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      var weatherData = await weather.getLocationWeather();
+                      updateUI(weatherData);
+                    },
                     child: const Icon(
                       Icons.near_me,
                       size: 50.0,
                     ),
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      var cityName = await Navigator.push(context,
+                          MaterialPageRoute(builder: (context) {
+                        return const CityScreen();
+                      }));
+                      kDMprint('cityName: $cityName');
+
+                      if (cityName == null) {
+                        updateUI(null);
+                      } else {
+                        var weatherData =
+                            await weather.getCityWeather(cityName);
+                        updateUI(weatherData);
+                      }
+                    },
                     child: const Icon(
                       Icons.location_city,
                       size: 50.0,
@@ -83,7 +113,7 @@ class _LocationScreenState extends State<LocationScreen> {
                     ),
                     Text(
                       // '☀️',
-                      weatherModel.getWeatherIcon(weatherId),
+                      weatherIcon,
                       style: kConditionTextStyle,
                     ),
                   ],
@@ -93,7 +123,7 @@ class _LocationScreenState extends State<LocationScreen> {
                 padding: const EdgeInsets.only(right: 15.0),
                 child: Text(
                   // "It's 🍦 time in $locale!",
-                  '${weatherModel.getMessage(temperature)} in $locale!',
+                  '$weatherMessage${locale.isEmpty ? '' : ' in $locale'}!',
                   textAlign: TextAlign.right,
                   style: kMessageTextStyle,
                 ),
